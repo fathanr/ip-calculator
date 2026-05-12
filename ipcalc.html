@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IP Calculator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+  }
+
+  .container {
+    width: 640px;
+    max-width: 100%;
+  }
+
+  .card {
+    background: #161b22;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: #8b949e;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .input-row label {
+    font-size: 14px;
+    color: #8b949e;
+    font-weight: 500;
+  }
+
+  .input-row input[type="text"] {
+    flex: 1;
+    min-width: 180px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: #e6edf3;
+    font-size: 18px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .input-row input[type="text"]:focus {
+    border-color: #1f6feb;
+  }
+
+  .input-row input[type="text"]::placeholder {
+    color: #484f58;
+  }
+
+  .input-row button {
+    background: #1f6feb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+
+  .input-row button:hover { background: #388bfd; }
+  .input-row button:active { transform: scale(0.97); }
+
+  .examples {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .examples button {
+    background: #21262d;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 12px;
+    color: #8b949e;
+    font-size: 12px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .examples button:hover { background: #30363d; color: #e6edf3; }
+
+  .error-msg {
+    color: #f85149;
+    font-size: 13px;
+    margin-top: 8px;
+    min-height: 20px;
+  }
+
+  /* --- Results --- */
+  .results {
+    margin-top: 24px;
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .result-item {
+    background: #0d1117;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .result-item .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8b949e;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .result-item .value {
+    font-size: 18px;
+    font-weight: 500;
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    word-break: break-all;
+  }
+
+  .result-item .value.highlight {
+    color: #58a6ff;
+  }
+
+  .result-item.span-2 {
+    grid-column: span 2;
+  }
+
+  .result-item .value-binary {
+    font-size: 14px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    word-break: break-all;
+    letter-spacing: 1px;
+  }
+
+  .result-item .binary-octet {
+    display: inline-block;
+    width: 9ch;
+  }
+
+  .result-item .bits-net { color: #58a6ff; }
+  .result-item .bits-host { color: #3fb950; }
+
+  /* --- Binary breakdown --- */
+  .binary-section {
+    margin-top: 12px;
+  }
+
+  .binary-section .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8b949e;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .binary-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  .binary-row .bin-label {
+    width: 90px;
+    color: #8b949e;
+    font-size: 11px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .binary-row .bin-bits {
+    letter-spacing: 1px;
+    word-break: break-all;
+  }
+
+  .bit-1 { color: #58a6ff; }
+  .bit-0 { color: #30363d; }
+
+  /* --- Color-coded octets --- */
+  .octet-0 { color: #ff7b72; }
+  .octet-1 { color: #d2a8ff; }
+  .octet-2 { color: #7ee787; }
+  .octet-3 { color: #79c0ff; }
+
+  @media (max-width: 500px) {
+    .result-grid { grid-template-columns: 1fr; }
+    .result-item.span-2 { grid-column: span 1; }
+    .input-row input[type="text"] { min-width: 140px; font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h1>IP Calculator</h1>
+    <p class="subtitle">IPv4 subnet calculator — CIDR, network, broadcast, usable hosts</p>
+
+    <div class="input-row">
+      <label for="ipInput">IP / CIDR</label>
+      <input type="text" id="ipInput" placeholder="e.g. 192.168.1.0/24" spellcheck="false" autofocus>
+      <button id="calcBtn">Calculate</button>
+    </div>
+
+    <div class="examples">
+      <button data-ex="10.0.0.0/8">10.0.0.0/8</button>
+      <button data-ex="172.16.0.0/12">172.16.0.0/12</button>
+      <button data-ex="192.168.1.0/24">192.168.1.0/24</button>
+      <button data-ex="192.168.1.15/28">192.168.1.15/28</button>
+      <button data-ex="10.0.0.1/32">10.0.0.1/32</button>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="results" id="results" style="display:none;">
+      <div class="result-grid" id="resultGrid"></div>
+      <div class="binary-section" id="binarySection"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ipInput    = document.getElementById('ipInput');
+  const calcBtn    = document.getElementById('calcBtn');
+  const errorMsg   = document.getElementById('errorMsg');
+  const resultsDiv = document.getElementById('results');
+  const resultGrid = document.getElementById('resultGrid');
+  const binarySec  = document.getElementById('binarySection');
+
+  // ============================================================
+  // IPv4 utilities
+  // ============================================================
+  function parseIPv4(s) {
+    const parts = s.trim().split('.');
+    if (parts.length !== 4) return null;
+    const octets = parts.map(p => {
+      const n = parseInt(p, 10);
+      if (isNaN(n) || n < 0 || n > 255) return null;
+      if (String(n) !== p.trim()) return null; // no leading zeros except "0"
+      return n;
+    });
+    return octets.some(o => o === null) ? null : octets;
+  }
+
+  function ipToU32(octets) {
+    return ((octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3]) >>> 0;
+  }
+
+  function u32ToIp(n) {
+    return [
+      (n >>> 24) & 0xff,
+      (n >>> 16) & 0xff,
+      (n >>> 8) & 0xff,
+      n & 0xff
+    ].join('.');
+  }
+
+  function parseCIDR(s) {
+    s = s.trim();
+    let ipStr, cidr;
+    if (s.includes('/')) {
+      const parts = s.split('/');
+      ipStr = parts[0];
+      cidr = parseInt(parts[1], 10);
+      if (isNaN(cidr) || cidr < 0 || cidr > 32) return null;
+    } else {
+      ipStr = s;
+      cidr = 32; // assume /32 for bare IP
+    }
+
+    const octets = parseIPv4(ipStr);
+    if (!octets) return null;
+    return { octets, cidr };
+  }
+
+  function netmaskFromCidr(cidr) {
+    if (cidr === 0) return 0;
+    return (0xffffffff << (32 - cidr)) >>> 0;
+  }
+
+  function wildcardFromCidr(cidr) {
+    return (~netmaskFromCidr(cidr)) >>> 0;
+  }
+
+  function formatBinary(n, bits = 8) {
+    return n.toString(2).padStart(bits, '0');
+  }
+
+  function formatBinarySpaced(n, bits = 8) {
+    return formatBinary(n, bits).split('').map((b, i) =>
+      `<span class="bit-${b}">${b}</span>`
+    ).join('');
+  }
+
+  function ipClass(octets) {
+    const first = octets[0];
+    if (first >= 1 && first <= 126) return 'A';
+    if (first >= 128 && first <= 191) return 'B';
+    if (first >= 192 && first <= 223) return 'C';
+    if (first >= 224 && first <= 239) return 'D (Multicast)';
+    if (first >= 240 && first <= 255) return 'E (Reserved)';
+    return '—';
+  }
+
+  function isPrivate(octets) {
+    const a = octets[0];
+    const b = octets[1];
+    // 10.0.0.0/8
+    if (a === 10) return true;
+    // 172.16.0.0/12
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    // 192.168.0.0/16
+    if (a === 192 && b === 168) return true;
+    // 127.0.0.0/8 loopback
+    if (a === 127) return true;
+    return false;
+  }
+
+  function countHosts(cidr) {
+    const hostBits = 32 - cidr;
+    if (hostBits >= 31) return Math.pow(2, hostBits); // /31 = 2, /32 = 1 for p2p
+    return Math.pow(2, hostBits) - 2;
+  }
+
+  // ============================================================
+  // Calculation
+  // ============================================================
+  function calculate() {
+    const raw = ipInput.value;
+    const parsed = parseCIDR(raw);
+
+    if (!parsed) {
+      errorMsg.textContent = 'Invalid input. Use format: 192.168.1.0/24';
+      resultsDiv.style.display = 'none';
+      return;
+    }
+
+    errorMsg.textContent = '';
+
+    const { octets, cidr } = parsed;
+    const ip = ipToU32(octets);
+    const mask = netmaskFromCidr(cidr);
+    const wild = wildcardFromCidr(cidr);
+    const network = (ip & mask) >>> 0;
+    const broadcast = (ip | wild) >>> 0;
+    const firstHost = cidr >= 31 ? network : (cidr === 32 ? ip : (network + 1) >>> 0);
+    const lastHost  = cidr >= 31 ? broadcast : (cidr === 32 ? ip : (broadcast - 1) >>> 0);
+    const hosts     = countHosts(cidr);
+    const cls       = ipClass(octets);
+    const priv      = isPrivate(octets);
+
+    // Render
+    renderResults({ octets, cidr, mask, wild, network, broadcast, firstHost, lastHost, hosts, cls, priv, ip });
+  }
+
+  function renderResults(d) {
+    const { octets, cidr, mask, wild, network, broadcast, firstHost, lastHost, hosts, cls, priv, ip } = d;
+
+    const maskOctets = [
+      (mask >>> 24) & 0xff,
+      (mask >>> 16) & 0xff,
+      (mask >>> 8) & 0xff,
+      mask & 0xff
+    ];
+
+    resultGrid.innerHTML = `
+      <div class="result-item">
+        <div class="label">IP Address</div>
+        <div class="value highlight">${u32ToIp(ip)}</div>
+      </div>
+      <div class="result-item">
+        <div class="label">CIDR</div>
+        <div class="value">/${cidr}</div>
+      </div>
+      <div class="result-item">
+        <div class="label">Network Address</div>
+        <div class="value highlight">${u32ToIp(network)}</div>
+      </div>
+      <div class="result-item">
+        <div class="label">Broadcast Address</div>
+        <div class="value highlight">${u32ToIp(broadcast)}</div>
+      </div>
+      <div class="result-item">
+        <div class="label">Subnet Mask</div>
+        <div class="value">${u32ToIp(mask)}</div>
+      </div>
+      <div class="result-item">
+        <div class="label">Wildcard Mask</div>
+        <div class="value">${u32ToIp(wild)}</div>
+      </div>
+      <div class="result-item">
+        <div class="label">First Usable Host</div>
+        <div class="value">${u32ToIp(firstHost)}</div>
+      </div>
+      <div class="result-item">
+        <div class="label">Last Usable Host</div>
+        <div class="value">${u32ToIp(lastHost)}</div>
+      </div>
+      <div class="result-item">
+        <div class="label">Total Hosts</div>
+        <div class="value">${hosts.toLocaleString()}</div>
+      </div>
+      <div class="result-item">
+        <div class="label">IP Class</div>
+        <div class="value">${cls}</div>
+      </div>
+      <div class="result-item${cidr >= 24 ? '' : ' span-2'}">
+        <div class="label">Scope</div>
+        <div class="value">${priv ? '🔒 Private / RFC 1918' : '🌐 Public'}</div>
+      </div>
+      <div class="result-item span-2">
+        <div class="label">Binary IP</div>
+        <div class="value-binary">
+          ${octets.map((o, i) =>
+            `<span class="binary-octet octet-${i}">${formatBinary(o)}</span>`
+          ).join(' ')}
+        </div>
+      </div>
+      <div class="result-item span-2">
+        <div class="label">Binary Mask</div>
+        <div class="value-binary">
+          ${maskOctets.map((o, i) =>
+            `<span class="binary-octet octet-${i}">${formatBinary(o)}</span>`
+          ).join(' ')}
+        </div>
+      </div>
+    `;
+
+    // Binary breakdown with network/host bits colored
+    const ipBin = formatBinary(ip, 32);
+    const netBits = ipBin.slice(0, cidr);
+    const hostBits = ipBin.slice(cidr);
+
+    binarySec.innerHTML = `
+      <div class="label">Bit Breakdown</div>
+      <div class="binary-row">
+        <span class="bin-label">IP</span>
+        <span class="bin-bits">
+          <span class="bits-net">${netBits.split('').map(b => `<span class="bit-${b}">${b}</span>`).join('')}</span><span class="bits-host">${hostBits.split('').map(b => `<span class="bit-${b}">${b}</span>`).join('')}</span>
+        </span>
+      </div>
+      <div class="binary-row">
+        <span class="bin-label">Mask</span>
+        <span class="bin-bits">
+          ${'1'.repeat(cidr).split('').map(() => `<span class="bit-1">1</span>`).join('')}${'0'.repeat(32-cidr).split('').map(() => `<span class="bit-0">0</span>`).join('')}
+        </span>
+      </div>
+      <div class="binary-row" style="margin-top:6px;">
+        <span class="bin-label"></span>
+        <span style="font-size:11px;color:#8b949e;">
+          <span style="color:#58a6ff;">■</span> Network (${cidr} bits)
+          <span style="color:#3fb950;margin-left:12px;">■</span> Host (${32-cidr} bits)
+        </span>
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #21262d;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:#8b949e;">
+        <span><span class="octet-0">██</span> Octet 1</span>
+        <span><span class="octet-1">██</span> Octet 2</span>
+        <span><span class="octet-2">██</span> Octet 3</span>
+        <span><span class="octet-3">██</span> Octet 4</span>
+      </div>
+    `;
+
+    resultsDiv.style.display = 'block';
+  }
+
+  // ============================================================
+  // Events
+  // ============================================================
+  calcBtn.addEventListener('click', calculate);
+
+  ipInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') calculate();
+  });
+
+  // Example buttons
+  document.querySelectorAll('[data-ex]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ipInput.value = btn.dataset.ex;
+      calculate();
+    });
+  });
+
+  // Auto-calc on page load with default example
+  ipInput.value = '192.168.1.0/24';
+  calculate();
+</script>
+</body>
+</html>
